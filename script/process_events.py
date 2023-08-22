@@ -9,6 +9,7 @@ pio.renderers.default = 'browser'
 os.chdir(r"D:\GitHub\vehicle_reidentification")
 input_path = "ignore/data_ground_truth/raw"
 output_path = "ignore/data_ground_truth/processed"
+output_path_cycle = "ignore/data_ground_truth/cycle"
 
 # define class to subtract timestamps
 class Vector():
@@ -211,6 +212,9 @@ def processMergedEvents():
     pdf = processPhaseChanges()['pdf']
     cdf = processPhaseChanges()['cdf']
     start_time = processPhaseChanges()['start_time']
+    
+    # write cycle df to csv
+    cdf.to_csv(os.path.join(output_path_cycle, file), sep = '\t', index = False)
     
     # check detector parameters
     ddf = processDetectorActuations()

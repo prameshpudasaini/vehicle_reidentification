@@ -3,8 +3,14 @@ import pandas as pd
 import numpy as np
 
 os.chdir(r"D:\GitHub\vehicle_reidentification")
-input_path = "ignore/data_ground_truth/processed"
-output_path = "ignore/data_ground_truth"
+
+# # for ground-truth data
+# input_path = "ignore/data_ground_truth/processed"
+# output_path = "ignore/data_ground_truth"
+
+# for training data
+input_path = "ignore/data_train/processed"
+output_path = "ignore/data_train"
 
 # detector length & spacing parameters
 len_stop = 40 # length of stop-bar det
@@ -49,7 +55,7 @@ def matchAcutuationEvents():
                 if tt_adv_stop < tt_min or tt_adv_stop > tt_max:
                     pass
                 else:
-                    adv_stop_match.append([i, j, tt_adv_stop])
+                    adv_stop_match.append([i, j, adv_time, stop_time, tt_adv_stop])
         
         # candidate matches from adv to rear det
         if adv_lane == 'L':
@@ -62,11 +68,11 @@ def matchAcutuationEvents():
                     if tt_adv_rear < tt_min or tt_adv_rear > tt_max:
                         pass
                     else:
-                        adv_rear_match.append([i, k, tt_adv_rear])
+                        adv_rear_match.append([i, k, adv_time, rear_time, tt_adv_rear])
     
     # df of candidate matches
-    df_adv_stop = pd.DataFrame(adv_stop_match, columns = ['adv', 'stop', 'travel_time'])
-    df_adv_rear = pd.DataFrame(adv_rear_match, columns = ['adv', 'rear', 'travel_time'])
+    df_adv_stop = pd.DataFrame(adv_stop_match, columns = ['adv', 'stop', 'TimeStamp_adv', 'TimeStamp_stop', 'travel_time'])
+    df_adv_rear = pd.DataFrame(adv_rear_match, columns = ['adv', 'rear', 'TimeStamp_adv', 'TimeStamp_rear', 'travel_time'])
     
     # merged data frame
     mdf = pd.concat([df_adv_stop, df_adv_rear], ignore_index = True).sort_values(by = 'adv')
@@ -84,7 +90,7 @@ result = []
 
 # match events for each file
 for file in file_list:
-    print("Processing events for file: ", file)
+    print("Generating candidate match pairs for file: ", file)
     
     # read data
     df = pd.read_csv(os.path.join(input_path, file), sep = '\t')
@@ -93,7 +99,7 @@ for file in file_list:
     
     # add file name
     mdf['file'] = file[:-4]
-    mdf = mdf[['file', 'adv', 'stop', 'rear', 'travel_time']]
+    mdf = mdf[['file', 'adv', 'stop', 'rear', 'travel_time', 'TimeStamp_adv', 'TimeStamp_stop', 'TimeStamp_rear']]
 
     result.append(mdf)
 

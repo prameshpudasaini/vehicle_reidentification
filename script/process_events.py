@@ -7,9 +7,18 @@ import plotly.io as pio
 pio.renderers.default = 'browser'
 
 os.chdir(r"D:\GitHub\vehicle_reidentification")
-input_path = "ignore/data_ground_truth/raw"
-output_path = "ignore/data_ground_truth/processed"
-output_path_cycle = "ignore/data_ground_truth/cycle"
+
+# # for ground-truth data
+# input_path = "ignore/data_ground_truth/raw"
+# output_path = "ignore/data_ground_truth/processed"
+# output_path_cycle = "ignore/data_ground_truth/cycle"
+# output_path_plot = "ignore/data_ground_truth/plot_signal_change"
+
+# for training data
+input_path = "ignore/data_train/raw"
+output_path = "ignore/data_train/processed"
+output_path_cycle = "ignore/data_train/cycle"
+output_path_plot = "ignore/data_train/plot_signal_change"
 
 # define class to subtract timestamps
 class Vector():
@@ -357,4 +366,4 @@ for file in file_list:
     
     # save actuation plot
     fig = plotActuationSCA(fdf)
-    fig.write_html(os.path.join("ignore/data_ground_truth/plot_signal_change", file + ".html"))
+    fig.write_html(os.path.join(output_path_plot, file + ".html"))

@@ -2,7 +2,6 @@ import os
 import pandas as pd
 
 os.chdir(r"D:\GitHub\vehicle_reidentification")
-input_path = "ignore/data_ground_truth/processed"
 
 # =============================================================================
 # process match pairs
@@ -10,7 +9,7 @@ input_path = "ignore/data_ground_truth/processed"
 
 def processMatchPairs(file):
     # read validated ground-truth match pairs dataset
-    vdf = pd.read_csv("data/candidate_match_pairs_validated.csv")
+    vdf = pd.read_csv(file_path)
     vdf = vdf[(vdf.file == file[:-4]) & (vdf.match == 1)] # discard ".txt" in file
     vdf.drop('match', axis = 1, inplace = True)
     
@@ -25,7 +24,14 @@ def processMatchPairs(file):
     # read processed events dataset
     df = pd.read_csv(os.path.join(input_path, file), sep = '\t')
     df.TimeStamp = pd.to_datetime(df.TimeStamp, format = '%Y-%m-%d %H:%M:%S.%f')
-    df.drop(['Parameter', 'Det', 'CycleNum', 'CycleLength', 'YellowTime', 'GreenTime'], axis = 1, inplace = True)
+    
+    # create arrival time based on cycle length, AIY, TUY
+    df['arrival_after'] = ((df.AIY < df.TUY) | (df.TUY == 0)).astype(int)
+    df.loc[df.arrival_after == 1, 'arrival_time'] = df[['AIY', 'TUY']].min(axis = 1) # arrival after yellow
+    df.loc[df.arrival_after == 0, 'arrival_time'] = -df[['AIY', 'TUY']].min(axis = 1) # arrival before yellow
+    
+    # drop redundant columns
+    df.drop(['Parameter', 'Det', 'CycleNum', 'CycleLength', 'YellowTime', 'GreenTime', 'arrival_after'], axis = 1, inplace = True)
     
     # create df for adv and stop-bar det
     adf = df.copy()[df.ID.isin(id_adv)]
@@ -49,6 +55,19 @@ def processMatchPairs(file):
     
     return mdf
 
+# specify path, file, file name for test/train datasets
+data_type = 'test'
+# data_type = 'train'
+
+if data_type == 'test':
+    input_path = "ignore/data_ground_truth/processed"
+    file_path = "data/candidate_match_pairs_ground_truth.csv"
+    output_file = "data/processed_match_pairs_ground_truth.txt"
+else:
+    input_path = "ignore/data_train/processed_sub"
+    file_path = "data/candidate_match_pairs_train.csv"
+    output_file = "data/processed_match_pairs_train.txt"
+
 # match pairs for each file and append
 file_list = os.listdir(input_path)
 result = []
@@ -62,4 +81,4 @@ fdf = pd.concat(result)
 # drop rows with Nan values
 fdf.dropna(axis = 0, inplace = True)
 fdf.reset_index(drop = True, inplace = True)
-fdf.to_csv("data/processed_match_pairs_ground_truth.txt", sep = '\t', index = False)
+fdf.to_csv(output_file, sep = '\t', index = False)

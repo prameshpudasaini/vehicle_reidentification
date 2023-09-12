@@ -34,7 +34,7 @@ def arrivalVolumeCycle(file, raw_path, cycle_path):
     
     return cycle_vol
 
-# # compute arrival volume on yellowa at advance det  
+# # compute arrival volume on yellow at advance det  
 # def arrivalVolumeYellow(xdf):  
 #     # convert yellow arrival as before and after
 #     xdf['arrival_after_yellow'] = xdf['arrival_after_yellow'].replace({1: 'after', 0: 'before'})
@@ -85,6 +85,7 @@ def bulkProcessMatchPairs(data_type):
     # match pairs for each file and append
     file_list = os.listdir(input_path)
     result = []
+    bulk_timestamp_join = []
     
     for file in file_list:
         print("Processing match pairs for file: ", file)
@@ -132,6 +133,9 @@ def bulkProcessMatchPairs(data_type):
         # merge vdf with adf and sdf
         mdf = pd.merge(vdf, adf, left_on = 'adv', right_on = 'ID_adv')
         mdf = pd.merge(mdf, sdf, left_on = 'stop', right_on = 'ID_stop')
+        
+        # mdf with timestamp (for analyzing training dataset)
+        file_timestamp_join = mdf.copy(deep = True)
             
         # drop redundant columns
         drop_cols = ['file', 'adv', 'stop', 'travel_time', 'remark', 'ID_adv', 'volume_stop', 'Lane_stop', 'ID_stop']
@@ -144,15 +148,32 @@ def bulkProcessMatchPairs(data_type):
         # rename column
         mdf.rename(columns = {'volume_adv': 'volume_adv_15'}, inplace = True)
         
-        # append mdf to result
+        # append mdf to result, timestamp df to result with timestamp
         result.append(mdf)
+        bulk_timestamp_join.append(file_timestamp_join)
         
     fdf = pd.concat(result)
+    full_timestamp_join = pd.concat(bulk_timestamp_join)
     
     # drop rows with Nan values
     fdf.dropna(axis = 0, inplace = True)
     fdf.reset_index(drop = True, inplace = True)
     fdf.to_csv(output_file, sep = '\t', index = False)
+    
+    return {'result': result, 'full_timestamp_join': full_timestamp_join}
 
-bulkProcessMatchPairs('test')
-bulkProcessMatchPairs('train')
+result_test = bulkProcessMatchPairs('test')
+result_train = bulkProcessMatchPairs('train')
+
+# check training dataset
+df_train = bulkProcessMatchPairs('train')['full_timestamp_join']
+
+drop_cols = ['remark', 'volume_adv', 'volume_stop', 'Lane_stop', 'ID_adv', 'ID_stop']
+df_train.drop(drop_cols, axis = 1, inplace = True)
+
+# SCA = YG, RG over stop bar det
+df_YG = df_train[df_train.SCA_stop == 'YG']
+df_RG = df_train[df_train.SCA_stop == 'RG']
+
+# SCA = GY, YY, YR, RR over stop bar det
+df_YR = df_train[df_train.SCA_stop.isin(['GY', 'YY', 'YR', 'RR'])]

@@ -1,9 +1,13 @@
 import os
 import pandas as pd
 
+import plotly.express as px
+import plotly.io as pio
+pio.renderers.default = 'browser'
+
 os.chdir(r"D:\GitHub\vehicle_reidentification")
 
-# compute arrival volume at advance det by cycle
+# compute arrival volume per cycle at advance det
 def arrivalVolumeCycle(file, raw_path, cycle_path):
     # raw df
     rdf = pd.read_csv(os.path.join(raw_path, file), sep = '\t')
@@ -34,35 +38,6 @@ def arrivalVolumeCycle(file, raw_path, cycle_path):
     
     return cycle_vol
 
-# # compute arrival volume on yellow at advance det  
-# def arrivalVolumeYellow(xdf):  
-#     # convert yellow arrival as before and after
-#     xdf['arrival_after_yellow'] = xdf['arrival_after_yellow'].replace({1: 'after', 0: 'before'})
-    
-#     # filter on det over advance detector
-#     xdf = xdf[xdf.Det == 'adv']
-    
-#     # number of vehicle arrivals by before/after yellow in each cycle
-#     cycle_vol = xdf.groupby(['CycleNum', 'arrival_after_yellow']).agg(volume_yellow = ('TimeStamp', 'size')).reset_index()
-#     cycle_vol = cycle_vol.pivot(index = 'CycleNum', columns = 'arrival_after_yellow', values = 'volume_yellow').reset_index()
-    
-#     # create dummy df for number of cycles in an hour
-#     max_cycle = int(max(cycle_vol.CycleNum))
-#     ydf = pd.DataFrame({'CycleNum': range(1, max_cycle + 1)})
-    
-#     # merge ydf and cycle vol
-#     ydf = ydf.merge(cycle_vol, how = 'outer')
-    
-#     # shift arrival volume after yellow in next cycle
-#     ydf['after_next_cycle'] = ydf.after.shift(-1)
-#     ydf.fillna(0, inplace = True)
-    
-#     # compute arrival volume on yellow
-#     ydf['volume_adv_yellow'] = ydf.before + ydf.after_next_cycle
-#     ydf = ydf[['CycleNum', 'volume_adv_yellow']]
-    
-#     return ydf
-
 # =============================================================================
 # process match pairs
 # =============================================================================
@@ -76,7 +51,7 @@ def bulkProcessMatchPairs(data_type):
         cycle_path = "ignore/data_ground_truth/cycle"
         output_file = "data/processed_match_pairs_ground_truth.txt"
     else:
-        input_path = "ignore/data_train/processed_sub" # sub folder
+        input_path = "ignore/data_train/processed_subset" # sub-folder
         file_path = "data/candidate_match_pairs_train.csv"
         raw_path = "ignore/data_train/raw"
         cycle_path = "ignore/data_train/cycle"
@@ -160,20 +135,117 @@ def bulkProcessMatchPairs(data_type):
     fdf.reset_index(drop = True, inplace = True)
     fdf.to_csv(output_file, sep = '\t', index = False)
     
-    return {'result': result, 'full_timestamp_join': full_timestamp_join}
+    return {'final_df': fdf, 'full_timestamp_join': full_timestamp_join}
 
 result_test = bulkProcessMatchPairs('test')
 result_train = bulkProcessMatchPairs('train')
 
-# check training dataset
-df_train = bulkProcessMatchPairs('train')['full_timestamp_join']
+# test/train datasets with timestamp joins
+df_test = result_test['full_timestamp_join']
+df_train = result_train['full_timestamp_join']
 
-drop_cols = ['remark', 'volume_adv', 'volume_stop', 'Lane_stop', 'ID_adv', 'ID_stop']
+(df_test.columns == df_train.columns).all()
+
+# drop redundant columns
+drop_cols = ['remark', 'TimeStamp_adv', 'HeadwayLead_adv', 'GapLead_adv', 'ID_adv',
+             'TimeStamp_stop', 'volume_stop', 'Lane_stop', 'HeadwayLead_stop', 'GapLead_stop', 'ID_stop',
+             'arrival_time_stop', 'volume_adv_cycle_stop']
+
+df_test.drop(drop_cols, axis = 1, inplace = True)
 df_train.drop(drop_cols, axis = 1, inplace = True)
 
-# SCA = YG, RG over stop bar det
-df_YG = df_train[df_train.SCA_stop == 'YG']
-df_RG = df_train[df_train.SCA_stop == 'RG']
+# =============================================================================
+# analyze training dataset
+# =============================================================================
 
-# SCA = GY, YY, YR, RR over stop bar det
-df_YR = df_train[df_train.SCA_stop.isin(['GY', 'YY', 'YR', 'RR'])]
+# check occupany time over advance detector
+df_occ_adv = df_train.copy(deep = True)[df_train.OccTime_adv >= 1.5]
+px.scatter(df_occ_adv, x = 'OccTime_adv', y = 'OccTime_stop').show()
+
+# remove matches with adv occupancy time > threshold
+occ_adv_limit = 4
+df_train = df_train[df_train.OccTime_adv <= occ_adv_limit]
+
+# check relationship between headway/gap at adv and stop-bar
+df_train.HeadwayFoll_adv.corr(df_train.HeadwayFoll_stop)
+df_train.GapFoll_adv.corr(df_train.GapFoll_stop)
+
+px.scatter(df_train, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
+px.scatter(df_train, x = 'GapFoll_adv', y = 'GapFoll_stop').show()
+
+# signal change during actuation over advance and stop-bar det
+sca_adv = ['GG', 'GY', 'YY', 'YR']
+sca_stop = ['GY', 'YY', 'YR', 'YG', 'RR', 'RG']
+
+# possible sca combinations
+sca_comb = {'GG': sca_stop,
+            'GY': sca_stop[1:],
+            'YY': sca_stop[1:],
+            'YR': sca_stop[-2:]}
+
+def plotAdvStop(xdf):
+    px.scatter(xdf, x = 'OccTime_adv', y = 'travel_time').show()
+    px.scatter(xdf, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
+    px.scatter(xdf, x = 'OccTime_adv', y = 'OccTime_stop').show()
+    
+def dataSCA(sca_adv, sca_stop):
+    xdf = df_train.copy(deep = True)[(df_train.SCA_adv == sca_adv) & (df_train.SCA_stop == sca_stop)]
+    return xdf
+
+# SCA: GG & GY
+df_GG_GY = dataSCA('GG', 'GY')
+plotAdvStop(df_GG_GY)
+
+# SCA: GG & YY
+df_GG_YY = dataSCA('GG', 'YY')
+plotAdvStop(df_GG_YY)
+
+# SCA: GG & YR
+df_GG_YR = dataSCA('GG', 'YR')
+plotAdvStop(df_GG_YR)
+
+# SCA: GG & YG
+df_GG_YG = dataSCA('GG', 'YG')
+plotAdvStop(df_GG_YG)
+
+# SCA: GG & RR
+df_GG_RR = dataSCA('GG', 'RR')
+plotAdvStop(df_GG_RR)
+
+# SCA: GG & RG
+df_GG_RG = dataSCA('GG', 'RG')
+plotAdvStop(df_GG_RG)
+
+# SCA: GY & YY
+df_GY_YY = dataSCA('GY', 'YY')
+plotAdvStop(df_GY_YY)
+
+# SCA: GY & YR
+df_GY_YR = dataSCA('GY', 'YR')
+plotAdvStop(df_GY_YR)
+
+# SCA: GY & YG
+df_GY_YG = dataSCA('GY', 'YG')
+plotAdvStop(df_GY_YG)
+
+# SCA: GY & RR
+df_GY_RR = dataSCA('GY', 'RR')
+plotAdvStop(df_GY_RR)
+
+# SCA: GY & RG
+df_GY_RG = dataSCA('GY', 'RG')
+plotAdvStop(df_GY_RG)
+
+# SCA: YY & YY
+df_YY_YY = dataSCA('YY', 'YY') # empty
+
+# SCA: YY & YR
+df_YY_YR = dataSCA('YY', 'YR')
+plotAdvStop(df_YY_YR)
+
+# SCA: YY & YG
+df_YY_YG = dataSCA('YY', 'YG') # empty
+
+# SCA: YY & RR
+df_YY_RR = dataSCA('YY', 'RR')
+plotAdvStop(df_YY_RR)

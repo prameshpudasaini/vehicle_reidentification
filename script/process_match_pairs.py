@@ -132,6 +132,18 @@ def bulkProcessMatchPairs(data_type):
     
     # drop rows with Nan values
     fdf.dropna(axis = 0, inplace = True)
+    
+    if data_type == 'train':
+        # remove matches with adv occupancy time > threshold
+        occ_adv_limit = 4
+        fdf = fdf[fdf.OccTime_adv <= occ_adv_limit]
+        
+        # remove matches with 'go' decisions and stop-bar occ time > 4
+        occ_stop_limit = 4
+        sca_stopbar_go = ['GY', 'YY', 'YR', 'RR']
+        fdf = fdf[~((fdf.OccTime_stop >= occ_stop_limit) & (fdf.SCA_stop.isin(sca_stopbar_go)))]
+    
+    # save file
     fdf.reset_index(drop = True, inplace = True)
     fdf.to_csv(output_file, sep = '\t', index = False)
     
@@ -158,94 +170,110 @@ df_train.drop(drop_cols, axis = 1, inplace = True)
 # analyze training dataset
 # =============================================================================
 
-# check occupany time over advance detector
-df_occ_adv = df_train.copy(deep = True)[df_train.OccTime_adv >= 1.5]
-px.scatter(df_occ_adv, x = 'OccTime_adv', y = 'OccTime_stop').show()
+# # check occupany time over advance detector
+# df_occ_adv = df_train.copy(deep = True)[df_train.OccTime_adv >= 1.5]
+# px.scatter(df_occ_adv, x = 'OccTime_adv', y = 'OccTime_stop').show()
 
-# remove matches with adv occupancy time > threshold
-occ_adv_limit = 4
-df_train = df_train[df_train.OccTime_adv <= occ_adv_limit]
+# # remove matches with adv occupancy time > threshold
+# occ_adv_limit = 4
+# df_train = df_train[df_train.OccTime_adv <= occ_adv_limit]
 
-# check relationship between headway/gap at adv and stop-bar
-df_train.HeadwayFoll_adv.corr(df_train.HeadwayFoll_stop)
-df_train.GapFoll_adv.corr(df_train.GapFoll_stop)
+# # check occupancy time over stop-bar detector on 'go' decisions
+# sca_stopbar_go = ['GY', 'YY', 'YR', 'RR']
+# df_occ_stop = df_train.copy(deep = True)[(df_train.OccTime_stop >= 2) & (df_train.SCA_stop.isin(sca_stopbar_go))]
+# px.scatter(df_occ_stop, x = 'OccTime_stop', y = 'travel_time').show()
 
-px.scatter(df_train, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
-px.scatter(df_train, x = 'GapFoll_adv', y = 'GapFoll_stop').show()
+# # remove matches with 'go' decisions and stop-bar occ time > 4
+# occ_stop_limit = 4
+# df_train = df_train[~((df_train.OccTime_stop >= occ_stop_limit) & (df_train.SCA_stop.isin(sca_stop_go)))]
 
-# signal change during actuation over advance and stop-bar det
-sca_adv = ['GG', 'GY', 'YY', 'YR']
-sca_stop = ['GY', 'YY', 'YR', 'YG', 'RR', 'RG']
+# # check relationship between headway/gap at adv and stop-bar
+# df_train.HeadwayFoll_adv.corr(df_train.HeadwayFoll_stop)
+# df_train.GapFoll_adv.corr(df_train.GapFoll_stop)
 
-# possible sca combinations
-sca_comb = {'GG': sca_stop,
-            'GY': sca_stop[1:],
-            'YY': sca_stop[1:],
-            'YR': sca_stop[-2:]}
+# px.scatter(df_train, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
+# px.scatter(df_train, x = 'GapFoll_adv', y = 'GapFoll_stop').show()
 
-def plotAdvStop(xdf):
-    px.scatter(xdf, x = 'OccTime_adv', y = 'travel_time').show()
-    px.scatter(xdf, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
-    px.scatter(xdf, x = 'OccTime_adv', y = 'OccTime_stop').show()
+# # signal change during actuation over advance and stop-bar det
+# sca_adv = ['GG', 'GY', 'YY', 'YR']
+# sca_stop = ['GY', 'YY', 'YR', 'YG', 'RR', 'RG']
+
+# # possible sca combinations
+# sca_comb = {'GG': sca_stop,
+#             'GY': sca_stop[1:],
+#             'YY': sca_stop[1:],
+#             'YR': sca_stop[-2:]}
+
+# def plotAdvStop(xdf):
+#     px.scatter(xdf, x = 'OccTime_adv', y = 'travel_time').show()
+#     px.scatter(xdf, x = 'HeadwayFoll_adv', y = 'HeadwayFoll_stop').show()
+#     px.scatter(xdf, x = 'OccTime_adv', y = 'OccTime_stop').show()
     
-def dataSCA(sca_adv, sca_stop):
-    xdf = df_train.copy(deep = True)[(df_train.SCA_adv == sca_adv) & (df_train.SCA_stop == sca_stop)]
-    return xdf
+# def dataSCA(sca_adv, sca_stop):
+#     xdf = df_train.copy(deep = True)[(df_train.SCA_adv == sca_adv) & (df_train.SCA_stop == sca_stop)]
+#     return xdf
 
-# SCA: GG & GY
-df_GG_GY = dataSCA('GG', 'GY')
-plotAdvStop(df_GG_GY)
+# # SCA: GG & GY
+# df_GG_GY = dataSCA('GG', 'GY')
+# plotAdvStop(df_GG_GY)
 
-# SCA: GG & YY
-df_GG_YY = dataSCA('GG', 'YY')
-plotAdvStop(df_GG_YY)
+# # SCA: GG & YY
+# df_GG_YY = dataSCA('GG', 'YY')
+# plotAdvStop(df_GG_YY)
 
-# SCA: GG & YR
-df_GG_YR = dataSCA('GG', 'YR')
-plotAdvStop(df_GG_YR)
+# # SCA: GG & YR
+# df_GG_YR = dataSCA('GG', 'YR')
+# plotAdvStop(df_GG_YR)
 
-# SCA: GG & YG
-df_GG_YG = dataSCA('GG', 'YG')
-plotAdvStop(df_GG_YG)
+# # SCA: GG & YG
+# df_GG_YG = dataSCA('GG', 'YG')
+# plotAdvStop(df_GG_YG)
 
-# SCA: GG & RR
-df_GG_RR = dataSCA('GG', 'RR')
-plotAdvStop(df_GG_RR)
+# # SCA: GG & RR
+# df_GG_RR = dataSCA('GG', 'RR')
+# plotAdvStop(df_GG_RR)
 
-# SCA: GG & RG
-df_GG_RG = dataSCA('GG', 'RG')
-plotAdvStop(df_GG_RG)
+# # SCA: GG & RG
+# df_GG_RG = dataSCA('GG', 'RG')
+# plotAdvStop(df_GG_RG)
 
-# SCA: GY & YY
-df_GY_YY = dataSCA('GY', 'YY')
-plotAdvStop(df_GY_YY)
+# # SCA: GY & YY
+# df_GY_YY = dataSCA('GY', 'YY')
+# plotAdvStop(df_GY_YY)
 
-# SCA: GY & YR
-df_GY_YR = dataSCA('GY', 'YR')
-plotAdvStop(df_GY_YR)
+# # SCA: GY & YR
+# df_GY_YR = dataSCA('GY', 'YR')
+# plotAdvStop(df_GY_YR)
 
-# SCA: GY & YG
-df_GY_YG = dataSCA('GY', 'YG')
-plotAdvStop(df_GY_YG)
+# # SCA: GY & YG
+# df_GY_YG = dataSCA('GY', 'YG')
+# plotAdvStop(df_GY_YG)
 
-# SCA: GY & RR
-df_GY_RR = dataSCA('GY', 'RR')
-plotAdvStop(df_GY_RR)
+# # SCA: GY & RR
+# df_GY_RR = dataSCA('GY', 'RR')
+# plotAdvStop(df_GY_RR)
 
-# SCA: GY & RG
-df_GY_RG = dataSCA('GY', 'RG')
-plotAdvStop(df_GY_RG)
+# # SCA: GY & RG
+# df_GY_RG = dataSCA('GY', 'RG')
+# plotAdvStop(df_GY_RG)
 
-# SCA: YY & YY
-df_YY_YY = dataSCA('YY', 'YY') # empty
+# # SCA: YY & YY
+# df_YY_YY = dataSCA('YY', 'YY') # empty
 
-# SCA: YY & YR
-df_YY_YR = dataSCA('YY', 'YR')
-plotAdvStop(df_YY_YR)
+# # SCA: YY & YR
+# df_YY_YR = dataSCA('YY', 'YR')
+# plotAdvStop(df_YY_YR)
 
-# SCA: YY & YG
-df_YY_YG = dataSCA('YY', 'YG') # empty
+# # SCA: YY & YG
+# df_YY_YG = dataSCA('YY', 'YG') # empty
 
-# SCA: YY & RR
-df_YY_RR = dataSCA('YY', 'RR')
-plotAdvStop(df_YY_RR)
+# # SCA: YY & RR
+# df_YY_RR = dataSCA('YY', 'RR')
+# plotAdvStop(df_YY_RR)
+
+# # SCA: YR & RR
+# df_YR_RR = dataSCA('YR', 'RR') # empty
+
+# # SCA: YR & RG
+# df_YR_RG = dataSCA('YR', 'RG')
+# plotAdvStop(df_YR_RG)

@@ -4,9 +4,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import xgboost as xgb
-from sklearn.model_selection import train_test_split, cross_val_score, GridSearchCV
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.linear_model import Ridge
 from sklearn.tree import DecisionTreeRegressor
+from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_percentage_error, mean_squared_error
 
@@ -104,14 +105,68 @@ ridge_reg = Ridge()
 # hyperparameters for grid search
 ridge_param_grid = {'alpha': [1e-15, 1e-10, 1e-5, 0.001, 0.01, 0.1, 1, 2, 5, 10, 20, 30, 50, 75, 100, 150, 200, 500]}
 
-# get results from grid search
+# results from grid search
 ridge_grid_result = performGridSearch(ridge_reg, ridge_param_grid)
 
-# train final ridge regression model with the best parameters on training dataset
+# train final model with the tuned parameters
 best_ridge_reg = Ridge(**ridge_grid_result['best_params'])
 best_ridge_reg.fit(X_train, y_train)
 
 evaluatePerformance(best_ridge_reg)
+
+# =============================================================================
+# Decision Tree Regression
+# =============================================================================
+
+method = 'Decision Tree Regression'
+print(method)
+
+# create decision tree regression model
+dt_reg = DecisionTreeRegressor()
+
+# hyperparameters for grid search
+dt_param_grid = {
+    'max_depth': [None, 10, 20, 30],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4],
+    'max_features': [None, 'sqrt', 'log2'],
+    'criterion': ['friedman_mse', 'absolute_error']
+}
+
+# results from grid search
+dt_grid_result = performGridSearch(dt_reg, dt_param_grid)
+
+# train final model with the tuned parameters
+best_dt_reg = DecisionTreeRegressor(**dt_grid_result['best_params'])
+best_dt_reg.fit(X_train, y_train)
+
+evaluatePerformance(best_dt_reg)
+
+# =============================================================================
+# Support Vector Regression
+# =============================================================================
+
+method = 'Support Vector Regression'
+print(method)
+
+# create support vector regression model
+sv_reg = SVR()
+
+# hyperparameters for grid search
+sv_param_grid = {
+    'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+    'C': [0.1, 1, 10],
+    'epsilon': [0.1, 0.2, 0.5],
+}
+
+# results from grid search
+sv_grid_result = performGridSearch(sv_reg, sv_param_grid)
+
+# train final model with the tuned parameters
+best_sv_reg = SVR(**sv_grid_result['best_params'])
+best_sv_reg.fit(X_train, y_train)
+
+evaluatePerformance(best_sv_reg)
 
 # =============================================================================
 # Random Forest
@@ -132,7 +187,7 @@ rf_param_grid = {
     'max_features': ['sqrt', 'log2']
 }
 
-# get results from grid search
+# results from grid search
 rf_grid_result = performGridSearch(rf_reg, rf_param_grid)
 
 # train final ridge regression model with the best parameters on training dataset
@@ -197,32 +252,3 @@ print("RMSE for {}: {:.4f}".format(method, xgb_rmse), "\n")
 # plt.ylabel('Feature')
 # plt.title('XGBoost Feature Importances')
 # plt.show()
-
-# hyperparameter tuning
-# hyperparameters for grid search
-# Define the hyperparameter grid for grid search
-
-
-# perform grid search with cross validation
-grid_search = GridSearchCV(
-    estimator = xgb_reg,
-    param_grid = param_grid,
-    scoring = 'neg_mean_squared_error',
-    cv = 3,
-    verbose = 2
-)
-
-# fit grid search to training data
-grid_search.fit(X_train, y_train)
-
-# get best hyperparameters and corresponding model
-best_params = grid_search.best_params_
-best_model = grid_search.best_estimator_
-
-# evaluate the model on the test set
-y_pred = best_model.predict(X_test)
-best_xgb_mape = mean_absolute_percentage_error(y_test, y_pred)
-best_xgb_rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-
-print("Best MAPE for {}: {:.4f}".format(method, best_xgb_mape))
-print("Best RMSE for {}: {:.4f}".format(method, best_xgb_rmse), "\n")

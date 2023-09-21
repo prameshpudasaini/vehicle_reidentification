@@ -68,10 +68,10 @@ def bulkProcessMatchPairs(data_type):
         # read validated match pairs dataset
         vdf = pd.read_csv(file_path)
         vdf = vdf[(vdf.file == file[:-4]) & (vdf.match == 1)] # discard ".txt" in file
-        vdf.drop('match', axis = 1, inplace = True)
+        vdf.drop('match', axis = 1, inplace = True) # drop match column
         
         # select thru match pairs
-        vdf = vdf.drop('rear', axis = 1)
+        vdf = vdf.drop('rear', axis = 1) # drop rear column
         vdf.dropna(subset = ['stop'], axis = 0, inplace = True)
         
         # sets of adv and stop-bar IDs
@@ -105,7 +105,7 @@ def bulkProcessMatchPairs(data_type):
         adf.columns += '_adv'
         sdf.columns += '_stop'
         
-        # merge vdf with adf and sdf
+        # merge validated df with adf and sdf
         mdf = pd.merge(vdf, adf, left_on = 'adv', right_on = 'ID_adv')
         mdf = pd.merge(mdf, sdf, left_on = 'stop', right_on = 'ID_stop')
         
@@ -113,10 +113,10 @@ def bulkProcessMatchPairs(data_type):
         file_timestamp_join = mdf.copy(deep = True)
             
         # drop redundant columns
-        drop_cols = ['file', 'adv', 'stop', 'travel_time', 'remark', 'ID_adv', 'volume_stop', 'Lane_stop', 'ID_stop']
+        drop_cols = ['travel_time', 'remark', 'ID_adv', 'volume_stop', 'Lane_stop', 'ID_stop']
         mdf.drop(drop_cols, axis = 1, inplace = True)
         
-        # add travel time (includes travel time for IDs with "lane change")
+        # add travel time (includes travel time for IDs with "lane change" in test dataset)
         mdf['travel_time'] = (mdf.TimeStamp_stop - mdf.TimeStamp_adv).dt.total_seconds().round(1)
         mdf.drop(['TimeStamp_adv', 'TimeStamp_stop'], axis = 1, inplace = True)
         

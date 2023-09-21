@@ -18,6 +18,11 @@ file_test = "data/final_match_pairs_ground_truth.txt"
 df_train = pd.read_csv(file_train, sep = '\t')
 df_test = pd.read_csv(file_test, sep = '\t')
 
+# drop redundant columns
+drop_cols = ['file', 'adv', 'stop']
+df_train.drop(drop_cols, axis = 1, inplace = True)
+df_test.drop(drop_cols, axis = 1, inplace = True)
+
 X = df_train.drop('travel_time', axis = 1)
 y = df_train.travel_time
 rand_state = 42
@@ -49,7 +54,7 @@ ax.set_yticklabels(df_train.columns)
 plt.show()
 
 # =============================================================================
-# function to perform cross-validation
+# function to perform hyperparameter tuning and cross-validation
 # =============================================================================
 
 cv = 5

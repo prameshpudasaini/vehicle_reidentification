@@ -35,49 +35,17 @@ def extractFeatures(data_type):
     df = pd.concat([df, SCA_adv_dummies], axis = 1)
     df.drop('SCA_adv', axis = 1, inplace = True)
     
-    # car-following
+    # car following as a boolean feature
+    gap_foll_limit = 1
+    df['car_follow'] = (df.GapFoll_adv <= gap_foll_limit).astype(int)
     
     # drop redundant columns
-    adv_cols_drop = ['AIY_adv', 'TUY_adv', 'HeadwayLead_adv', 'GapLead_adv']
+    adv_cols_drop = ['AIY_adv', 'TUY_adv', 'GapLead_adv']
     stop_cols_drop = [col for col in df.columns if col.endswith('_stop')]
     df.drop(adv_cols_drop + stop_cols_drop, axis = 1, inplace = True)
     
     # remove common suffix '_adv' from column names
     df.columns = [col.replace('_adv', '') for col in df.columns]
-    
-    # # boolean feature: stop/go decision
-    # df['decision'] = (df.SCA_stop.isin(['YG', 'RG'])).astype(int)
-    
-    # # boolean features: arrival/departure over adv det
-    # df['on_green_adv'] = (df.SCA_adv.str.startswith('G')).astype(int)
-    # df['off_green_adv'] = (df.SCA_adv.str.endswith('G')).astype(int)
-    # df['off_yellow_adv'] = (df.SCA_adv.str.endswith('Y')).astype(int)
-    # df.drop('SCA_adv', axis = 1, inplace = True)
-    
-    # # boolean features: arrival/departure over stop-bar det
-    # df['on_green_stop'] = (df.SCA_stop.str.startswith('G')).astype(int)
-    # df['on_yellow_stop'] = (df.SCA_stop.str.startswith('Y')).astype(int)
-    # df['off_yellow_stop'] = (df.SCA_stop.str.endswith('Y')).astype(int)
-    # df['off_red_stop'] = (df.SCA_stop.str.endswith('R')).astype(int)
-    # df.drop('SCA_stop', axis = 1, inplace = True)
-    
-    # # drop leading headway and gap
-    # df.drop(['HeadwayLead_adv', 'GapLead_adv', 'HeadwayLead_stop', 'GapLead_stop'], axis = 1, inplace = True)
-    
-    # # drop AIY and TUY
-    # df.drop(['AIY_adv', 'TUY_adv', 'AIY_stop', 'TUY_stop', 'arrival_time_stop'], axis = 1, inplace = True)
-    
-    # # one-hot enconding: SCA over stop-bar det
-    # SCA_stop_dummies = pd.get_dummies(df['SCA_stop'], prefix = 'SCA_stop', prefix_sep = '_', drop_first = True, dtype = int)
-    # df = pd.concat([df, SCA_stop_dummies], axis = 1)
-    # df.drop('SCA_stop', axis = 1, inplace = True)
-    
-    # # ratios of occupancy time, headway, gap over adv and stop-bar det
-    # df['occ_time_ratio'] = (df.OccTime_adv / df.OccTime_stop).round(6)
-    # df['headway_foll_ratio'] = (df.HeadwayFoll_adv / df.HeadwayFoll_stop).round(6)
-    # df['headway_lead_ratio'] = (df.HeadwayLead_adv / df.HeadwayLead_stop).round(6)
-    # df['gap_foll_ratio'] = (df.GapFoll_adv / df.GapFoll_stop).round(6)
-    # df['gap_lead_ratio'] = (df.GapLead_adv / df.GapLead_stop).round(6)
     
     # save file
     df.to_csv(output_file, sep = '\t', index = False)

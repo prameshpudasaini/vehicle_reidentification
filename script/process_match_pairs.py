@@ -67,8 +67,7 @@ def bulkProcessMatchPairs(data_type):
         
         # read validated match pairs dataset
         vdf = pd.read_csv(file_path)
-        vdf = vdf[(vdf.file == file[:-4]) & (vdf.match == 1)] # discard ".txt" in file
-        vdf.drop('match', axis = 1, inplace = True) # drop match column
+        vdf = vdf[vdf.file == file[:-4]] # discard ".txt" in file
         
         # select thru match pairs
         vdf = vdf.drop('rear', axis = 1) # drop rear column

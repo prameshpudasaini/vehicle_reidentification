@@ -67,6 +67,8 @@ for model in models:
     list_error.append(df_error)
         
 error = pd.concat(list_error) # combined best match and best pred errors from all models
+error.to_csv("data/result_prediction_error.txt", sep = '\t', index = False)
+
 error_long = pd.melt(error, id_vars = 'model', var_name = 'type', value_name = 'error') # long format
 error_long['type'] = error_long['type'].replace({'best_match_error': 'Best reidentification model',
                                                  'best_pred_error': 'Best prediction model'})
@@ -134,6 +136,7 @@ for model in models:
     list_metrics.append(df_metrics)
     
 all_metrics = pd.concat(list_metrics)
+all_metrics.to_csv("data/result_match_pred_metrics_all.txt", sep = '\t', index = False)
 
 fig_f1_mape = px.scatter(
     all_metrics, 
@@ -230,3 +233,4 @@ result = pred_metrics_models.merge(match_metrics_models, on = ['type', 'method']
 cols_round = ['mape_valid', 'rmse_valid', 'mape_test', 'rmse_test', 'mape_test_full', 'rmse_test_full',
               'accuracy', 'precision', 'recall', 'f1']
 result[cols_round] = result[cols_round].round(4)
+result.to_csv("data/result_match_pred_metrics_best.txt", sep = '\t', index = False)

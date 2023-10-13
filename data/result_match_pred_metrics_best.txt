@@ -1,0 +1,9 @@
+type	mape_valid	rmse_valid	mape_test	rmse_test	mape_test_full	rmse_test_full	method	TP	FP	FN	accuracy	precision	recall	f1
+best_match	0.1234	0.9386	0.1191	0.9723	0.1171	0.9505	Decision Tree Regression	304	18	33	0.9021	0.9441	0.9021	0.9226
+best_pred	0.1218	0.9196	0.1184	0.9679	0.1168	0.9513	Decision Tree Regression	303	19	34	0.8991	0.941	0.8991	0.9196
+best_match	0.1342	0.9535	0.1415	1.0194	0.1427	1.0281	Support Vector Regression	304	16	33	0.9021	0.95	0.9021	0.9254
+best_pred	0.1323	0.9574	0.1399	1.0287	0.1397	1.0366	Support Vector Regression	303	18	34	0.8991	0.9439	0.8991	0.921
+best_match	0.1201	0.8622	0.1218	0.9219	0.1224	0.9163	Random Forest	306	19	31	0.908	0.9415	0.908	0.9245
+best_pred	0.1205	0.8663	0.1219	0.916	0.1204	0.9118	Random Forest	302	22	35	0.8961	0.9321	0.8961	0.9138
+best_match	0.122	0.8718	0.1182	0.8873	0.117	0.8717	XGBoost	310	15	27	0.9199	0.9538	0.9199	0.9366
+best_pred	0.1205	0.8618	0.1149	0.8858	0.1131	0.8722	XGBoost	308	17	29	0.9139	0.9477	0.9139	0.9305

@@ -1,1 +1,4 @@
 ignore
+.Rproj.user
+.Rhistory
+vehicle_reidentification.Rproj

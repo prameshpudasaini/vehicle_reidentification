@@ -2,9 +2,13 @@ library(data.table)
 library(ggplot2)
 library(e1071)
 
-best_match_model <- 'Best Reidentification Model'
-best_pred_model <- 'Best Prediction Model'
+best_match_model <- 'Best Reidentification'
+best_pred_model <- 'Best Prediction'
 models <- c('Decision Tree Regression', 'Support Vector Regression', 'Random Forest', 'XGBoost')
+
+width <- 29.7
+height <- 21
+dpi <- 1200
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 # error in travel time prediction
@@ -36,10 +40,10 @@ plot_error_scatter <- ggplot(df_error, aes(x = best_match_error, y = best_pred_e
     geom_point(size = 0.5) + 
     facet_wrap(~model) + 
     geom_text(data = df_cor, aes(0, -4, label = label), size = 5) +
-    xlab("Error in travel time prediction for best reidentification model (sec)") + 
-    ylab("Error in time prediction for best prediction model (sec)") + 
+    xlab("Error in travel time prediction for best reidentification (sec)") + 
+    ylab("Error in travel time prediction for best prediction (sec)") + 
     theme_minimal() + 
-    theme(axis.text.x = element_text(size = 14, face = 'bold'),
+    theme(axis.text.x = element_text(size = 14),
           axis.text.y = element_text(size = 14),
           axis.title = element_text(size = 16, face = 'bold'),
           legend.title = element_text(size = 16, face = 'bold'),
@@ -59,10 +63,10 @@ plot_error_scatter
 
 ggsave("output/static_plots/models_error_scatter.png",
        plot = plot_error_scatter,
-       units = "cm",
-       width = 29.7,
-       height = 21,
-       dpi = 600)
+       units = 'cm',
+       width = width,
+       height = height,
+       dpi = dpi)
 
 df_error <- melt(
     df_error, 
@@ -93,13 +97,15 @@ plot_error_violin <- ggplot(df_error, aes(x = model, y = value, color = type)) +
     labs(color = "") + 
     theme_minimal() + 
     theme(axis.text.x = element_text(size = 14, face = 'bold'),
+          axis.title.x = element_blank(),
           axis.text.y = element_text(size = 14),
-          axis.title = element_text(size = 16, face = 'bold'),
+          axis.title.y = element_text(size = 16, face = 'bold'),
           legend.title = element_text(size = 16, face = 'bold'),
           legend.text = element_text(size = 14),
-          legend.position = 'top',
+          legend.position = c(0.75, 0.2),
           legend.box = 'vertical',
-          legend.spacing = unit(0, 'cm'),
+          legend.direction = 'horizontal',
+          legend.spacing = unit(0.5, 'cm'),
           legend.box.margin = margin(0, 0, 0, 0, 'cm'),
           panel.border = element_rect(color = 'black', fill = NA),
           panel.background = element_rect(color = 'NA'),
@@ -114,10 +120,10 @@ plot_error_violin
 
 ggsave("output/static_plots/models_error_violin.png",
        plot = plot_error_violin,
-       units = "cm",
-       width = 29.7,
-       height = 21,
-       dpi = 600)
+       units = 'cm',
+       width = width,
+       height = height,
+       dpi = dpi)
 
 # KS test for error in prediction across models
 
@@ -141,3 +147,10 @@ ks.test(dt_match, xgb_match)
 ks.test(sv_match, rf_match)
 ks.test(sv_match, xgb_match)
 ks.test(rf_match, xgb_match)
+
+ks.test(dt_pred, sv_pred)
+ks.test(dt_pred, rf_pred)
+ks.test(dt_pred, xgb_pred)
+ks.test(sv_pred, rf_pred)
+ks.test(sv_pred, xgb_pred)
+ks.test(rf_pred, xgb_pred)

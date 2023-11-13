@@ -154,3 +154,38 @@ ks.test(dt_pred, xgb_pred)
 ks.test(sv_pred, rf_pred)
 ks.test(sv_pred, xgb_pred)
 ks.test(rf_pred, xgb_pred)
+
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# analysis of metrics from all hyperparameter combinations
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+df_metrics <- fread("data/result_match_pred_metrics_all.txt")
+
+sample_num <- df_metrics[, .N, by = model]
+sample_num[, N := paste0("n = ", N)]
+
+plot_hyp_metrics <- ggplot(df_metrics, aes(x = match_f1, y = pred_mape)) + 
+    geom_point(size = 0.5) + 
+    facet_wrap(~model) + 
+    geom_text(data = sample_num, aes(0.9, 0.42, label = N), size = 5) +
+    xlab("F1 score for vehicle reidentification") + 
+    ylab("MAPE for travel time prediction (%)") + 
+    theme_minimal() + 
+    theme(axis.text.x = element_text(size = 14),
+          axis.text.y = element_text(size = 14),
+          axis.title = element_text(size = 16, face = 'bold'),
+          legend.title = element_text(size = 16, face = 'bold'),
+          panel.border = element_rect(color = 'black', fill = NA),
+          panel.background = element_rect(color = 'NA'),
+          strip.text = element_text(size = 16, face = 'bold'),
+          plot.background = element_rect(fill = 'white', color = 'NA')) + 
+    guides(color = guide_legend(title = NULL, override.aes = list(size = 2)))
+
+plot_hyp_metrics
+
+ggsave("output/static_plots/models_hyperparameters_metrics.png",
+       plot = plot_hyp_metrics,
+       units = 'cm',
+       width = width,
+       height = height,
+       dpi = dpi)
